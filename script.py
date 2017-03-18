@@ -22,6 +22,8 @@ def get_returns():
     returns = historical_data_shift / historical_data
     return returns
 
+def get_covariance(returns_k):
+    return  returns.cov()
 
 get_data()
 returns = get_returns()
