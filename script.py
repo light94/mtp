@@ -1,4 +1,5 @@
 from yahoo_finance import Share
+import numpy as np
 import pandas as pd
 
 stock_list = ['YHOO','GOOGL']
@@ -23,7 +24,11 @@ def get_returns():
     return returns
 
 def get_covariance(returns_k):
-    return  returns.cov()
+    return  returns_k.cov()
+
+def get_eigen(covariance):
+    w, v = np.linalg.eig(covariance)
+    return w,v
 
 get_data()
 returns = get_returns()
