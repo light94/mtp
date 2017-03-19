@@ -30,5 +30,10 @@ def get_eigen(covariance):
     w, v = np.linalg.eig(covariance)
     return w,v
 
+def get_normalized(mat):
+    sums = mat.sum(axis=0)
+    for i in range(mat.shape[1]):
+        mat[:,i] = mat[:,i] / sums[i]
+
 get_data()
 returns = get_returns()
