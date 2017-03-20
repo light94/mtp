@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 stock_list = ['YHOO','GOOGL']
+num_stocks = len(stock_list)
 historical_data = pd.DataFrame(columns=stock_list)
 START_DATE = '2017-01-01'
 END_DATE = '2017-03-16'
@@ -23,8 +24,8 @@ def get_returns():
     returns = historical_data_shift / historical_data
     return returns
 
-def get_covariance(returns_k):
-    return  returns_k.cov()
+def get_covariance(returns, k):
+    return  returns.iloc[:k,:].cov()
 
 def get_eigen(covariance):
     w, v = np.linalg.eig(covariance)
@@ -34,6 +35,16 @@ def get_normalized(mat):
     sums = mat.sum(axis=0)
     for i in range(mat.shape[1]):
         mat[:,i] = mat[:,i] / sums[i]
+
+def get_normalized_vector(vect):
+    return (vect/vect.sum())
+
+def get_sharpe_ratio(returns, k):
+    w,v = get_eigen(get_covariance(returns.iloc[:k,:]))
+    sr = [0] * num_stocks
+    for i in range(num_stocks):
+        sr[i] = np.dot(v[:,i], returns.iloc[:k,:].mean(axis=0)) / np.sqrt(w[i])
+    return sr
 
 get_data()
 returns = get_returns()
