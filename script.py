@@ -1,31 +1,44 @@
 from yahoo_finance import Share
 import numpy as np
 import pandas as pd
+from operator import itemgetter, add
+import requests
+import os.path
 
-stock_list = ['YHOO','GOOGL']
-num_stocks = len(stock_list)
-historical_data = pd.DataFrame(columns=stock_list)
-START_DATE = '2017-01-01'
+stocks = ['ADANIPORTS','ASIANPAINT','AXISBANK','BHARTIARTL','CIPLA','COALINDIA','DRREDDY','GAIL','HDFC',
+            'HDFCBANK','HEROMOTOCO','HINDUNILVR','ICICIBANK','INFY','ITC','LT','LUPIN','MARUTI','NTPC','ONGC','POWERGRID',
+            'RELIANCE','SBIN','SUNPHARMA','TATAMOTORS','TATASTEEL','TCS','WIPRO']
+stock_list = [stock+".BO" for stock in stocks]
+START_DATE = '2012-01-01'
 END_DATE = '2017-03-16'
+num_rows = 0
+num_stocks = len(stock_list)
+arm_select_count = [0] * num_stocks
+BACKUP = 250
 
 def get_data():
-    global historical_data
+    historical_data = pd.DataFrame(columns=stock_list)
     for stock in stock_list:
+        print stock
         share = Share(stock)
-        data = share.get_historical(START_DATE, END_DATE)
+        try:
+            data = share.get_historical(START_DATE, END_DATE)
+        except Exception as e:
+            data = share.get_historical(START_DATE, END_DATE)
         price_data = [daily_data['Close'] for daily_data in data]
         historical_data[stock] = pd.Series(price_data)
     historical_data = historical_data.astype(float)
+    return historical_data
 
-def get_returns():
+def get_returns(historical_data):
     historical_data_shift = historical_data.iloc[1:,:].copy().append(historical_data.tail(1))
     historical_data_shift.reset_index(inplace=True, drop=True)
     historical_data_shift = historical_data_shift.astype(float)
-    returns = historical_data_shift / historical_data
+    returns = (historical_data_shift / historical_data - 1)*100
     return returns
 
 def get_covariance(returns, k):
-    return  returns.iloc[:k,:].cov()
+    return  np.round(returns.iloc[k-BACKUP:k,:].cov(),4)
 
 def get_eigen(covariance):
     w, v = np.linalg.eig(covariance)
@@ -40,11 +53,80 @@ def get_normalized_vector(vect):
     return (vect/vect.sum())
 
 def get_sharpe_ratio(returns, k):
-    w,v = get_eigen(get_covariance(returns.iloc[:k,:]))
     sr = [0] * num_stocks
+    confidence_bound = [0] * num_stocks
     for i in range(num_stocks):
-        sr[i] = np.dot(v[:,i], returns.iloc[:k,:].mean(axis=0)) / np.sqrt(w[i])
-    return sr
+        sr[i] = np.dot(eigen_vectors[:,i], returns.iloc[k-BACKUP:k,:].mean(axis=0)) / np.sqrt(eigen_values[i])
+        confidence_bound[i] = np.sqrt(2*np.log(k+num_rows)/(num_rows + arm_select_count[i]))
+    return sr, confidence_bound
 
-get_data()
-returns = get_returns()
+def adjust_matrices(eigens):
+    global returns, eigen_vectors, eigen_values
+    col_list = []
+    eigen_vectors_new = np.zeros(shape=(num_stocks,num_stocks))
+    eigen_values_new = []
+    i=0
+    for index, cutoff in eigens:
+        col_list.append(stock_list[index])
+        eigen_vectors_new[:,i] = eigen_vectors[:,index]
+        eigen_values_new.append(eigen_values[index])
+        i+=1
+    returns = returns[col_list]
+    eigen_vectors = eigen_vectors_new
+    eigen_values = eigen_values_new
+
+def parition_arms(sorted_eigens):
+    drops = []
+    for i in range(len(sorted_eigens)-1):
+        drops.append(sorted_eigens[i][1]/sorted_eigens[i+1][1])
+    index, cutoff = max(enumerate(drops), key=itemgetter(1))
+    # need to check for boundary conditions here
+    return index
+
+def get_optimal_arm(cutoff_index,ratios):
+    global arm_select_count
+    print 'arm_select_count {} '.format(arm_select_count)
+    # significant
+    index_sig, elem_sig = max(enumerate(ratios[:cutoff_index+1]), key=itemgetter(1))
+    # insignificant
+    index_insig, elem_insig = max(enumerate(ratios[cutoff_index+1:]), key=itemgetter(1))
+    # index_sig and index_insig stll refer to the original index
+    print 'index_sig = {}, index_insig= {}'.format(index_sig, index_insig)
+    arm_select_count[index_sig] += 1
+    arm_select_count[index_insig] += 1
+    return index_sig, index_insig
+
+def get_portfolio_variance(portfolio_index):
+    return eigen_values[portfolio_index]/np.square(np.sum(eigen_vectors[:,portfolio_index]))
+
+def get_portfolio_weights(index1, index2):
+    var1 = get_portfolio_variance(index1)
+    var2 = get_portfolio_variance(index2)
+    theta =  var1/(var1+var2)
+    h1 = get_normalized_vector(eigen_vectors[:,index1])
+    h2 = get_normalized_vector(eigen_vectors[:,index2])
+
+    return (1-theta)*h1 + theta*h2
+
+
+
+if os.path.isfile('historical_data.csv'):
+    historical_data = pd.read_csv('historical_data.csv')
+else:
+    historical_data =  get_data()
+
+returns = get_returns(historical_data)
+num_rows = returns.shape[0]
+
+for k in range(BACKUP,num_rows):
+    print 'k is {}'.format(k)
+    eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
+    sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
+    cutoff_index = parition_arms(sorted_eigens)
+    print 'cutoff index is {}'.format(cutoff_index)
+    adjust_matrices(sorted_eigens)
+    sharpe_ratios, confidence_bound = get_sharpe_ratio(returns, k)
+    index_sig, index_insig = get_optimal_arm(cutoff_index,map(add,sharpe_ratios,confidence_bound))
+    weights = get_portfolio_weights(index_sig, index_insig)
+    realized_return = np.dot(weights,returns.iloc[k,:])
+    print 'Realized returns = {} \n'.format(realized_return)
