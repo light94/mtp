@@ -5,10 +5,12 @@ from operator import itemgetter, add
 import requests
 import os.path
 
-stocks = ['ADANIPORTS','ASIANPAINT','AXISBANK','BHARTIARTL','CIPLA','COALINDIA','DRREDDY','GAIL','HDFC',
-            'HDFCBANK','HEROMOTOCO','HINDUNILVR','ICICIBANK','INFY','ITC','LT','LUPIN','MARUTI','NTPC','ONGC','POWERGRID',
-            'RELIANCE','SBIN','SUNPHARMA','TATAMOTORS','TATASTEEL','TCS','WIPRO']
-stock_list = [stock+".BO" for stock in stocks]
+stocks = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equity','BHARTI IB Equity','CIPLA IB Equity','COAL IB Equity',
+        'DRRD IB Equity','GAIL IB Equity','HDFC IB Equity','HDFCB IB Equity','HMCL IB  Equity','HUVR IB  Equity','ICICIBC IB  Equity','INFO IB  Equity',
+        'ITC IB Equity','LT IB Equity','LPC IB  Equity','MM IB  Equity','MSIL IB  Equity','NTPC IB  Equity','ONGC IB  Equity','PWGR IB  Equity','RIL IB  Equity','SBIN IB  Equity',
+        'SUNP IB  Equity','TTMT IB  Equity','TATA IB  Equity','TCS IB  Equity','WPRO IB  Equity']
+#stock_list = [stock+".BO" for stock in stocks]
+stock_list = stocks
 START_DATE = '2012-01-01'
 END_DATE = '2017-03-16'
 num_rows = 0
@@ -60,8 +62,8 @@ def get_sharpe_ratio(returns, k):
         confidence_bound[i] = np.sqrt(2*np.log(k+num_rows)/(num_rows + arm_select_count[i]))
     return sr, confidence_bound
 
-def adjust_matrices(eigens):
-    global returns, eigen_vectors, eigen_values
+def adjust_matrices(eigens, returns_temp):
+    global eigen_vectors, eigen_values
     col_list = []
     eigen_vectors_new = np.zeros(shape=(num_stocks,num_stocks))
     eigen_values_new = []
@@ -71,9 +73,10 @@ def adjust_matrices(eigens):
         eigen_vectors_new[:,i] = eigen_vectors[:,index]
         eigen_values_new.append(eigen_values[index])
         i+=1
-    returns = returns[col_list]
+    returns = returns_temp[col_list]
     eigen_vectors = eigen_vectors_new
     eigen_values = eigen_values_new
+    return returns
 
 def parition_arms(sorted_eigens):
     drops = []
@@ -110,23 +113,25 @@ def get_portfolio_weights(index1, index2):
 
 
 
-if os.path.isfile('historical_data.csv'):
-    historical_data = pd.read_csv('historical_data.csv')
+if os.path.isfile('historical_data_bl.csv'):
+    historical_data = pd.read_csv('historical_data_bl.csv')
 else:
     historical_data =  get_data()
 
 returns = get_returns(historical_data)
 num_rows = returns.shape[0]
-
+realized_return_list = []
 for k in range(BACKUP,num_rows):
+    returns_temp = returns
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
     sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
     cutoff_index = parition_arms(sorted_eigens)
     print 'cutoff index is {}'.format(cutoff_index)
-    adjust_matrices(sorted_eigens)
-    sharpe_ratios, confidence_bound = get_sharpe_ratio(returns, k)
+    returns_temp = adjust_matrices(sorted_eigens,returns_temp)
+    sharpe_ratios, confidence_bound = get_sharpe_ratio(returns_temp, k)
     index_sig, index_insig = get_optimal_arm(cutoff_index,map(add,sharpe_ratios,confidence_bound))
     weights = get_portfolio_weights(index_sig, index_insig)
-    realized_return = np.dot(weights,returns.iloc[k,:])
+    realized_return = np.dot(weights,returns_temp.iloc[k,:])
     print 'Realized returns = {} \n'.format(realized_return)
+    realized_return_list.append(realized_return)
