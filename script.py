@@ -43,7 +43,7 @@ def get_covariance(returns, k):
     return  np.round(returns.iloc[k-BACKUP:k,:].cov(),4)
 
 def get_eigen(covariance):
-    w, v = np.linalg.eig(covariance)
+    w, v = np.linalg.eigh(covariance)
     return w,v
 
 def get_normalized(mat):
@@ -78,10 +78,10 @@ def adjust_matrices(eigens, returns_temp):
     eigen_values = eigen_values_new
     return returns
 
-def parition_arms(sorted_eigens):
+def parition_arms(eigens):
     drops = []
-    for i in range(len(sorted_eigens)-1):
-        drops.append(sorted_eigens[i][1]/sorted_eigens[i+1][1])
+    for i in range(len(eigens)-1):
+        drops.append(eigens[i]/eigens[i+1])
     index, cutoff = max(enumerate(drops), key=itemgetter(1))
     # need to check for boundary conditions here
     return index
@@ -106,8 +106,8 @@ def get_portfolio_weights(index1, index2):
     var1 = get_portfolio_variance(index1)
     var2 = get_portfolio_variance(index2)
     theta =  var1/(var1+var2)
-    h1 = get_normalized_vector(eigen_vectors[:,index1])
-    h2 = get_normalized_vector(eigen_vectors[:,index2])
+    h1 = eigen_vectors[:,index1]
+    h2 = eigen_vectors[:,index2]
 
     return (1-theta)*h1 + theta*h2
 
@@ -122,16 +122,15 @@ returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
 for k in range(BACKUP,num_rows):
-    returns_temp = returns
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
-    sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
-    cutoff_index = parition_arms(sorted_eigens)
+    #sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
+    cutoff_index = parition_arms(eigen_values)
     print 'cutoff index is {}'.format(cutoff_index)
-    returns_temp = adjust_matrices(sorted_eigens,returns_temp)
-    sharpe_ratios, confidence_bound = get_sharpe_ratio(returns_temp, k)
+    #returns_temp = adjust_matrices(sorted_eigens,returns_temp)
+    sharpe_ratios, confidence_bound = get_sharpe_ratio(returns, k)
     index_sig, index_insig = get_optimal_arm(cutoff_index,map(add,sharpe_ratios,confidence_bound))
     weights = get_portfolio_weights(index_sig, index_insig)
-    realized_return = np.dot(weights,returns_temp.iloc[k,:])
+    realized_return = np.dot(weights,returns.iloc[k,:])
     print 'Realized returns = {} \n'.format(realized_return)
     realized_return_list.append(realized_return)
