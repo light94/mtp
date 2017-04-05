@@ -124,6 +124,8 @@ realized_return_list = []
 for k in range(BACKUP,num_rows):
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
+    eigen_values = eigen_values[::-1]
+    print 'Eigen values = {} \n'.format(eigen_values)
     #sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
     cutoff_index = parition_arms(eigen_values)
     print 'cutoff index is {}'.format(cutoff_index)
@@ -131,6 +133,7 @@ for k in range(BACKUP,num_rows):
     sharpe_ratios, confidence_bound = get_sharpe_ratio(returns, k)
     index_sig, index_insig = get_optimal_arm(cutoff_index,map(add,sharpe_ratios,confidence_bound))
     weights = get_portfolio_weights(index_sig, index_insig)
+    print 'Weights = {} \n'.format(weights)
     realized_return = np.dot(weights,returns.iloc[k,:])
     print 'Realized returns = {} \n'.format(realized_return)
     realized_return_list.append(realized_return)
