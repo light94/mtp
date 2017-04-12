@@ -1,16 +1,13 @@
-from yahoo_finance import Share
 import numpy as np
 import pandas as pd
 from operator import itemgetter, add
-import requests
 import os.path
 
-stocks = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equity','BHARTI IB Equity','CIPLA IB Equity','COAL IB Equity',
+stock_list = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equity','BHARTI IB Equity','CIPLA IB Equity','COAL IB Equity',
         'DRRD IB Equity','GAIL IB Equity','HDFC IB Equity','HDFCB IB Equity','HMCL IB  Equity','HUVR IB  Equity','ICICIBC IB  Equity','INFO IB  Equity',
         'ITC IB Equity','LT IB Equity','LPC IB  Equity','MM IB  Equity','MSIL IB  Equity','NTPC IB  Equity','ONGC IB  Equity','PWGR IB  Equity','RIL IB  Equity','SBIN IB  Equity',
         'SUNP IB  Equity','TTMT IB  Equity','TATA IB  Equity','TCS IB  Equity','WPRO IB  Equity']
-#stock_list = [stock+".BO" for stock in stocks]
-stock_list = stocks
+
 START_DATE = '2012-01-01'
 END_DATE = '2017-03-16'
 num_rows = 0
@@ -112,6 +109,11 @@ def get_portfolio_weights(index1, index2):
     return (1-theta)*h1 + theta*h2
 
 
+def get_cumulative_wealth():
+    cw = 1
+    for i in range(len(realized_return_list)):
+        cw *= (1+realized_return_list[i]/100)
+    return cw
 
 if os.path.isfile('historical_data_bl.csv'):
     historical_data = pd.read_csv('historical_data_bl.csv')
@@ -121,12 +123,18 @@ else:
 returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
+
 for k in range(BACKUP,num_rows):
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
-    eigen_values = eigen_values[::-1]
     print 'Eigen values = {} \n'.format(eigen_values)
-    #sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
+    sorted_eigens = sorted(enumerate(eigen_values), reverse=True, key=itemgetter(1))
+    eigen_vectors_new = np.zeros(shape=(num_stocks,num_stocks))
+    i = 0
+    for index, value in sorted_eigens:
+        eigen_vectors_new[:,i] = eigen_vectors[:,index]
+        i+=1
+    eigen_vectors = eigen_vectors_new
     cutoff_index = parition_arms(eigen_values)
     print 'cutoff index is {}'.format(cutoff_index)
     #returns_temp = adjust_matrices(sorted_eigens,returns_temp)
@@ -137,3 +145,5 @@ for k in range(BACKUP,num_rows):
     realized_return = np.dot(weights,returns.iloc[k,:])
     print 'Realized returns = {} \n'.format(realized_return)
     realized_return_list.append(realized_return)
+cw = get_cumulative_wealth()
+print cw
