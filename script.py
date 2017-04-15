@@ -103,7 +103,7 @@ def get_cumulative_wealth():
 
 skips = [x for x in range(0,2000) if x%LAG!=0]
 
-if os.path.isfile('historical_data_b.csv'):
+if os.path.isfile('historical_data_bl.csv'):
     historical_data = pd.read_csv('historical_data_bl.csv',skiprows=skips)
 else:
     print "Datafile is missing"
