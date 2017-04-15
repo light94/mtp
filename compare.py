@@ -21,5 +21,5 @@ nn = pd.DataFrame()
 nn['bandit'] = realized_return_list
 nn['equal'] = eq_returns
 nn['diff=bandit-equal'] = map(operator.sub,realized_return_list,eq_returns)
-nn.to_csv('results7.csv', index=False)
+nn.to_csv('results{}.csv'.format(LAG), index=False)
 cw2 = get_cumulative_wealth()
