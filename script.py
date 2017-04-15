@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from operator import itemgetter, add
 import os.path
+import sys
 
 stock_list = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equity','BHARTI IB Equity','CIPLA IB Equity','COAL IB Equity',
         'DRRD IB Equity','GAIL IB Equity','HDFC IB Equity','HDFCB IB Equity','HMCL IB  Equity','HUVR IB  Equity','ICICIBC IB  Equity','INFO IB  Equity',
@@ -14,20 +15,7 @@ num_rows = 0
 num_stocks = len(stock_list)
 arm_select_count = [0] * num_stocks
 BACKUP = 250
-
-def get_data():
-    historical_data = pd.DataFrame(columns=stock_list)
-    for stock in stock_list:
-        print stock
-        share = Share(stock)
-        try:
-            data = share.get_historical(START_DATE, END_DATE)
-        except Exception as e:
-            data = share.get_historical(START_DATE, END_DATE)
-        price_data = [daily_data['Close'] for daily_data in data]
-        historical_data[stock] = pd.Series(price_data)
-    historical_data = historical_data.astype(float)
-    return historical_data
+LAG = int(raw_input("Enter lag: "))
 
 def get_returns(historical_data):
     historical_data_shift = historical_data.iloc[1:,:].copy().append(historical_data.tail(1))
@@ -115,16 +103,19 @@ def get_cumulative_wealth():
         cw *= (1+realized_return_list[i]/100)
     return cw
 
-if os.path.isfile('historical_data_bl.csv'):
-    historical_data = pd.read_csv('historical_data_bl.csv')
+skips = [x for x in range(0,2000) if x%LAG!=0]
+
+if os.path.isfile('historical_data_b.csv'):
+    historical_data = pd.read_csv('historical_data_bl.csv',skiprows=skips)
 else:
-    historical_data =  get_data()
+    print "Datafile is missing"
+    sys.exit(1)
 
 returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
 
-for k in range(BACKUP,num_rows):
+for k in range(BACKUP/LAG,num_rows):
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
     print 'Eigen values = {} \n'.format(eigen_values)

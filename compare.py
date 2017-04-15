@@ -7,7 +7,7 @@ def equally_weighted_portfolio(returns, k):
 
 
 eq_returns = []
-for k in range(BACKUP,num_rows):
+for k in range(BACKUP/LAG,num_rows):
     eq_returns.append(equally_weighted_portfolio(returns,k))
 
 
@@ -21,5 +21,5 @@ nn = pd.DataFrame()
 nn['bandit'] = realized_return_list
 nn['equal'] = eq_returns
 nn['diff=bandit-equal'] = map(operator.sub,realized_return_list,eq_returns)
-nn.to_csv('results.csv', index=False)   
+nn.to_csv('results7.csv', index=False)
 cw2 = get_cumulative_wealth()
