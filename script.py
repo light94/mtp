@@ -9,8 +9,6 @@ stock_list = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equi
         'ITC IB Equity','LT IB Equity','LPC IB  Equity','MM IB  Equity','MSIL IB  Equity','NTPC IB  Equity','ONGC IB  Equity','PWGR IB  Equity','RIL IB  Equity','SBIN IB  Equity',
         'SUNP IB  Equity','TTMT IB  Equity','TATA IB  Equity','TCS IB  Equity','WPRO IB  Equity']
 
-START_DATE = '2012-01-01'
-END_DATE = '2017-03-16'
 num_rows = 0
 num_stocks = len(stock_list)
 arm_select_count = [0] * num_stocks
