@@ -7,7 +7,7 @@ def equally_weighted_portfolio(returns, k):
 
 
 eq_returns = []
-for k in range(BACKUP/LAG,num_rows):
+for k in range(BACKUP,num_rows):
     eq_returns.append(equally_weighted_portfolio(returns,k))
 
 

@@ -12,9 +12,8 @@ stock_list = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equi
 num_rows = 0
 num_stocks = len(stock_list)
 arm_select_count = [0] * num_stocks
-BACKUP = 250
 LAG = int(raw_input("Enter lag: "))
-
+BACKUP = 50
 def get_returns(historical_data):
     historical_data_shift = historical_data.iloc[1:,:].copy().append(historical_data.tail(1))
     historical_data_shift.reset_index(inplace=True, drop=True)
@@ -113,7 +112,7 @@ returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
 
-for k in range(BACKUP/LAG,num_rows):
+for k in range(BACKUP,num_rows):
     print 'k is {}'.format(k)
     eigen_values, eigen_vectors = get_eigen(get_covariance(returns,k))
     print 'Eigen values = {} \n'.format(eigen_values)
