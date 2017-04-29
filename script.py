@@ -12,8 +12,17 @@ stock_list = ['ADSEZ IB Equity','APNT IB Equity','AXSB IB Equity','BJAUT IB Equi
 num_rows = 0
 num_stocks = len(stock_list)
 arm_select_count = [0] * num_stocks
-LAG = int(raw_input("Enter lag: "))
-BACKUP = 50
+
+try:
+    LAG
+except NameError:
+    LAG = int(raw_input("Enter lag: "))
+
+try:
+    BACKUP
+except NameError:
+    BACKUP = 4
+
 def get_returns(historical_data):
     historical_data_shift = historical_data.iloc[1:,:].copy().append(historical_data.tail(1))
     historical_data_shift.reset_index(inplace=True, drop=True)
