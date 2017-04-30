@@ -7,8 +7,10 @@ def equally_weighted_portfolio(returns, k):
 
 
 eq_returns = []
+CW = 1
 for k in range(BACKUP,num_rows):
-    eq_returns.append(equally_weighted_portfolio(returns,k))
+    CW = CW * (1+equally_weighted_portfolio(returns,k)/100)
+    eq_returns.append(CW)
 
 
 def get_cumulative_wealth():
@@ -22,4 +24,4 @@ nn['bandit'] = realized_return_list
 nn['equal'] = eq_returns
 nn['diff=bandit-equal'] = map(operator.sub,realized_return_list,eq_returns)
 nn.to_csv('results{}.csv'.format(LAG), index=False)
-cw2 = get_cumulative_wealth()
+#cw2 = get_cumulative_wealth()
