@@ -120,6 +120,7 @@ else:
 returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
+cumulative_wealth_list = []
 CW=1
 
 for k in range(BACKUP,num_rows):
@@ -142,8 +143,7 @@ for k in range(BACKUP,num_rows):
     weights = get_portfolio_weights(index_sig, index_insig)
     print 'Weights = {} \n'.format(weights)
     realized_return = np.dot(weights,returns.iloc[k,:])
+    realized_return_list.append(realized_return)
     print 'Realized returns = {} \n'.format(realized_return)
     CW = CW*(1+realized_return/100)
-    realized_return_list.append(CW)
-cw = get_cumulative_wealth()
-print cw
+    cumulative_wealth_list.append(CW)
