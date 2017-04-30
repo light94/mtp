@@ -21,7 +21,7 @@ except NameError:
 try:
     BACKUP
 except NameError:
-    BACKUP = 4
+    BACKUP = 52
 
 def get_returns(historical_data):
     historical_data_shift = historical_data.iloc[1:,:].copy().append(historical_data.tail(1))
@@ -50,7 +50,7 @@ def get_sharpe_ratio(returns, k):
     confidence_bound = [0] * num_stocks
     for i in range(num_stocks):
         sr[i] = np.dot(eigen_vectors[:,i], returns.iloc[k-BACKUP:k,:].mean(axis=0)) / np.sqrt(eigen_values[i])
-        confidence_bound[i] = np.sqrt(2*np.log(k+num_rows)/(num_rows + arm_select_count[i]))
+        confidence_bound[i] = np.sqrt(2*np.log(k)/(BACKUP + arm_select_count[i]))
     return sr, confidence_bound
 
 def adjust_matrices(eigens, returns_temp):
@@ -78,6 +78,7 @@ def parition_arms(eigens):
     return index
 
 def get_optimal_arm(cutoff_index,ratios):
+    cutoff_index = 5
     global arm_select_count
     print 'arm_select_count {} '.format(arm_select_count)
     # significant
@@ -99,8 +100,7 @@ def get_portfolio_weights(index1, index2):
     theta =  var1/(var1+var2)
     h1 = eigen_vectors[:,index1]
     h2 = eigen_vectors[:,index2]
-
-    return (1-theta)*h1 + theta*h2
+    return np.add((1-theta)*h1, theta*h2)
 
 
 def get_cumulative_wealth():
@@ -120,6 +120,7 @@ else:
 returns = get_returns(historical_data)
 num_rows = returns.shape[0]
 realized_return_list = []
+CW=1
 
 for k in range(BACKUP,num_rows):
     print 'k is {}'.format(k)
@@ -132,6 +133,7 @@ for k in range(BACKUP,num_rows):
         eigen_vectors_new[:,i] = eigen_vectors[:,index]
         i+=1
     eigen_vectors = eigen_vectors_new
+    eigen_values = sorted(eigen_values,reverse=True)
     cutoff_index = parition_arms(eigen_values)
     print 'cutoff index is {}'.format(cutoff_index)
     #returns_temp = adjust_matrices(sorted_eigens,returns_temp)
@@ -141,6 +143,7 @@ for k in range(BACKUP,num_rows):
     print 'Weights = {} \n'.format(weights)
     realized_return = np.dot(weights,returns.iloc[k,:])
     print 'Realized returns = {} \n'.format(realized_return)
-    realized_return_list.append(realized_return)
+    CW = CW*(1+realized_return/100)
+    realized_return_list.append(CW)
 cw = get_cumulative_wealth()
 print cw
